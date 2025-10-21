@@ -1,57 +1,105 @@
-// Formulaire avec Formspree
-document.getElementById("contactForm").addEventListener("submit", function (e) {
-  e.preventDefault();
+// Formulaire avec Formspree (avec garde si l'élément manque)
+const contactForm = document.getElementById('contactForm');
+if (contactForm) {
+  contactForm.addEventListener('submit', function (e) {
+    e.preventDefault();
 
-  const form = e.target;
-  const formData = new FormData(form);
-  const submitButton = form.querySelector('button[type="submit"]');
-  const originalText = submitButton.textContent;
+    const form = e.target;
+    const formData = new FormData(form);
+    const submitButton = form.querySelector('button[type="submit"]');
+    const originalText = submitButton ? submitButton.textContent : 'Envoyer';
 
-  // Afficher l'état de chargement
-  submitButton.textContent = "Envoi en cours...";
-  submitButton.disabled = true;
-
-  fetch(form.action, {
-    method: 'POST',
-    body: formData,
-    headers: {
-      'Accept': 'application/json'
+    if (submitButton) {
+      // Afficher l'état de chargement
+      submitButton.textContent = "Envoi en cours...";
+      submitButton.disabled = true;
     }
-  })
-    .then(response => {
-      if (response.ok) {
-        alert("✅ Message envoyé avec succès ! Je vous répondrai rapidement.");
-        form.reset();
-      } else {
-        throw new Error('Erreur lors de l\'envoi');
+
+    fetch(form.action, {
+      method: 'POST',
+      body: formData,
+      headers: {
+        'Accept': 'application/json'
       }
     })
-    .catch(error => {
-      alert("❌ Erreur lors de l'envoi. Veuillez réessayer ou me contacter directement.");
-      console.error('Erreur:', error);
-    })
-    .finally(() => {
-      // Restaurer le bouton
-      submitButton.textContent = originalText;
-      submitButton.disabled = false;
-    });
-});
+      .then(response => {
+        if (response.ok) {
+          alert("✅ Message envoyé avec succès ! Je vous répondrai rapidement.");
+          form.reset();
+        } else {
+          throw new Error('Erreur lors de l\'envoi');
+        }
+      })
+      .catch(error => {
+        alert("❌ Erreur lors de l'envoi. Veuillez réessayer ou me contacter directement.");
+        console.error('Erreur:', error);
+      })
+      .finally(() => {
+        // Restaurer le bouton
+        if (submitButton) {
+          submitButton.textContent = originalText;
+          submitButton.disabled = false;
+        }
+      });
+  });
+}
 
 
 // Burger menu
 const burger = document.getElementById("burger");
 const mobileMenu = document.getElementById("mobileMenu");
 if (burger && mobileMenu) {
-  burger.addEventListener("click", () => {
-    const isOpen = mobileMenu.classList.toggle("hidden");
-    burger.setAttribute("aria-expanded", String(!isOpen));
+  function openMenu() {
+    mobileMenu.classList.remove('hidden');
+    mobileMenu.setAttribute('aria-hidden', 'false');
+    burger.setAttribute('aria-expanded', 'true');
+    // focus sur le premier lien
+    const firstLink = mobileMenu.querySelector('a');
+    if (firstLink) firstLink.focus();
+  }
+
+  function closeMenu() {
+    mobileMenu.classList.add('hidden');
+    mobileMenu.setAttribute('aria-hidden', 'true');
+    burger.setAttribute('aria-expanded', 'false');
+    burger.focus();
+  }
+
+  burger.addEventListener('click', () => {
+    if (mobileMenu.classList.contains('hidden')) openMenu(); else closeMenu();
   });
+
+  // Keyboard support for burger (Enter / Space)
+  burger.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      if (mobileMenu.classList.contains('hidden')) openMenu(); else closeMenu();
+    }
+    if (e.key === 'Escape') {
+      closeMenu();
+    }
+  });
+
+  // Close on Escape when menu open
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && !mobileMenu.classList.contains('hidden')) {
+      closeMenu();
+    }
+  });
+
   // Fermer le menu en cliquant sur un lien
   mobileMenu.querySelectorAll("a").forEach((link) => {
     link.addEventListener("click", () => {
-      mobileMenu.classList.add("hidden");
-      burger.setAttribute("aria-expanded", "false");
+      closeMenu();
     });
+  });
+
+  // Close when clicking outside menu (mobile)
+  document.addEventListener('click', (e) => {
+    if (!mobileMenu.classList.contains('hidden')) {
+      const isClickInside = mobileMenu.contains(e.target) || burger.contains(e.target);
+      if (!isClickInside) closeMenu();
+    }
   });
 }
 
@@ -72,26 +120,26 @@ function animateCounter(elementId, targetValue, suffix = '') {
   }, 20);
 }
 
-// Observer pour déclencher les animations
-const observer = new IntersectionObserver((entries) => {
-  entries.forEach(entry => {
-    if (entry.isIntersecting) {
-      const target = entry.target;
-      if (target.id === 'projectsCount') {
-        animateCounter('projectsCount', 50, '+');
-      } else if (target.id === 'satisfactionRate') {
-        animateCounter('satisfactionRate', 100, '%');
-      } else if (target.id === 'deliveryTime') {
-        animateCounter('deliveryTime', 5, 'j');
-      } else if (target.id === 'performanceScore') {
-        animateCounter('performanceScore', 95, '+');
-      }
-    }
-  });
-}, { threshold: 0.5 });
-
-// Observer les éléments de statistiques
+// Observer pour déclencher les animations (créé après DOMContentLoaded)
 document.addEventListener('DOMContentLoaded', () => {
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        const target = entry.target;
+        if (target.id === 'projectsCount') {
+          animateCounter('projectsCount', 50, '+');
+        } else if (target.id === 'satisfactionRate') {
+          animateCounter('satisfactionRate', 100, '%');
+        } else if (target.id === 'deliveryTime') {
+          animateCounter('deliveryTime', 5, 'j');
+        } else if (target.id === 'performanceScore') {
+          animateCounter('performanceScore', 95, '+');
+        }
+      }
+    });
+  }, { threshold: 0.5 });
+
+  // Observer les éléments de statistiques
   const statsElements = ['projectsCount', 'satisfactionRate', 'deliveryTime', 'performanceScore'];
   statsElements.forEach(id => {
     const element = document.getElementById(id);
